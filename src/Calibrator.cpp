@@ -276,7 +276,8 @@ void Calibrator::groundPlaneDetection(int cam, std::vector<cv::Mat>& pointcloud_
     
     // Process the pointcloud data and compute RANSAC models
     // double ground_plane_confidence = 0.9999;
-    double ground_plane_confidence = 0.98;
+    double ground_plane_confidence = 0.97;
+    size_t plane_inliers = 15000; // Minimum number of inliers for a plane to be considered valid
     for (int i = 0; i < pointcloud_vec.size(); i++) {
         if (cross_observation_matrix[i][cam] && !pointcloud_vec[i].empty()) {
             cv::Mat null_tras = (cv::Mat_<double>(3, 1) << 0, 0, 0);
@@ -319,7 +320,7 @@ void Calibrator::groundPlaneDetection(int cam, std::vector<cv::Mat>& pointcloud_
                     outfile << idx << "\n";
                 }
                 outfile.close();
-                std::cout << "Inliers saved to inliers.txt" << std::endl;
+                // std::cout << "Inliers saved to inliers.txt" << std::endl;
             } else {
                 std::cerr << "Unable to open file for writing." << std::endl;
             }
@@ -331,9 +332,18 @@ void Calibrator::groundPlaneDetection(int cam, std::vector<cv::Mat>& pointcloud_
                     outfile2 << point.x << " " << point.y << " " << point.z << "\n";
                 }
                 outfile2.close();
-                std::cout << "Point cloud saved to pointcloud.txt" << std::endl;
+                // std::cout << "Point cloud saved to pointcloud.txt" << std::endl;
             } else {
                 std::cerr << "Unable to open file for writing." << std::endl;
+            }
+
+            std::cout << "Camera " << std::to_string(cam + 1) << " - Pointcloud "
+                    << std::to_string(i) << ": " << inliers->indices.size() << " inliers found." << std::endl;
+            if (inliers->indices.size() < plane_inliers) {
+                std::cerr << "Not enough inliers found." << std::endl;
+                ang_camera_vec[i] = 0;
+                d_camera_vec[i] = 0;
+                continue;
             }
 
             // Process pointcloud features
